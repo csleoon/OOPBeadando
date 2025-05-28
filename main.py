@@ -2,7 +2,7 @@ from Auto import Auto
 from Szemelyauto import Szemelyauto
 from Teherauto import Teherauto
 from Berles import Berles
-
+from datetime import datetime
 
 class Berloprogram:
     def __init__(self):
@@ -107,12 +107,27 @@ class Berloprogram:
         print(self.berlesek)
 
     def ellenorizze_foglalast(self, rendszam, datum):
-        foglalt_datumok = []
-        for berles in self.berlesek:
-            if berles[1] == rendszam:
-                foglalt_datumok.append(berles[2])
-
-        return datum not in foglalt_datumok
+        try:
+            # Dátum formátum ellenőrzése és konvertálása
+            datum_obj = datetime.strptime(datum, '%Y.%m.%d')
+            mai_datum = datetime.now()
+            
+            # Ellenőrizzük, hogy a dátum nem a múltban van-e
+            if datum_obj.date() < mai_datum.date():
+                print("Hibás dátum! Csak jövőbeli időpontra lehet foglalni!")
+                return False
+            
+            # Ellenőrizzük, hogy az autó szabad-e a kért időpontban
+            foglalt_datumok = []
+            for berles in self.berlesek:
+                if berles[1] == rendszam:
+                    foglalt_datumok.append(berles[2])
+            
+            return datum not in foglalt_datumok
+            
+        except ValueError:
+            print("Hibás dátumformátum! Használja a következő formátumot: ÉÉÉÉ.HH.NN")
+            return False
 
 berlo_program = Berloprogram()
 
@@ -134,14 +149,23 @@ while True:
     if choice == "1":
         foglalt_rendszam = input("Adja meg a foglalando rendszamot: ")
         foglalo_neve = input("Adja meg a foglalo nevét: ")
-        foglalando_datum = input("Adja meg a foglalas datumat! Csak egy napra tud foglalni.")
         autok = Auto.autok_adatai()
         rendszamok = [auto.rendszam for auto in autok]
 
-        if foglalt_rendszam in rendszamok and berlo_program.ellenorizze_foglalast(foglalt_rendszam, foglalando_datum):
-            berlo_program.auto_berlese(foglalt_rendszam, foglalo_neve, foglalando_datum)
+        if foglalt_rendszam in rendszamok:
+            while True:
+                foglalando_datum = input("Adja meg a foglalas datumat (ÉÉÉÉ.HH.NN formátumban): ")
+                try:
+                    datum_obj = datetime.strptime(foglalando_datum, '%Y.%m.%d')
+                    if berlo_program.ellenorizze_foglalast(foglalt_rendszam, foglalando_datum):
+                        berlo_program.auto_berlese(foglalt_rendszam, foglalo_neve, foglalando_datum)
+                        break
+                    else:
+                        print("Az autó már foglalt erre a dátumra! Kérem, válasszon másik időpontot.")
+                except ValueError:
+                    print("Hibás dátumformátum! Használja a következő formátumot: ÉÉÉÉ.HH.NN")
         else:
-            print("Sikertelen - A megadott rendszámú autó nem található vagy már foglalt erre a dátumra!")
+            print("Sikertelen foglalás - A megadott rendszámú autó nem található!")
 
     elif choice == "2":
         rendszam = input("Adja meg a rendszamot: ")
